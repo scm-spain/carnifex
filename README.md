@@ -1,4 +1,4 @@
-# Check long running oozie jobs
+# Check long running Oozie jobs
 
 ## Description
 The script connects to an Oozie server instance and check the oozie jobs currently running, if one takes too 
@@ -22,3 +22,15 @@ and send the kill command
 The default value is *1800000* (30 minutes)
 * log: Optional, the location of the log file where all the output will be send, the user running the script
 should have permissions over that file. The default value is */tmp/long_running_oozie_jobs.log* 
+
+## Building it
+You can build a jar file using two different gradle tasks:
+
+* jar
+* fatJar
+
+The *jar* task generates a shell script that runs the the jar and add all its dependencies from a separate 
+directory.
+
+The *fatJar* task generates a jar with all the dependencies inside, and you should execute the script using
+the java command.
