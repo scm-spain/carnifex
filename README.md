@@ -29,6 +29,11 @@ You can build a jar file using two different gradle tasks:
 * jar
 * fatJar
 
+````
+./gradlew jar
+./gradlew fatJar
+````
+
 The *jar* task generates a shell script that runs the the jar and add all its dependencies from a separate 
 directory.
 
