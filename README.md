@@ -19,7 +19,7 @@ Or add it to the crontab so it can execute every X minutes and kill the check th
 * oozieUrl: Mandatory, it contains the URL to connect to the Oozie server in order to check the jobs 
 and send the kill command
 * maxTime: Optional, you can set the maximum time a job can be running, it should be defined on milliseconds.
-The default value is *1800000* (30 minutes)
+The default value is *2700000* (45 minutes)
 * log: Optional, the location of the log file where all the output will be send, the user running the script
 should have permissions over that file. The default value is */tmp/long_running_oozie_jobs.log* 
 

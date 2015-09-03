@@ -21,7 +21,8 @@ public class CheckLongRunningJobs
     private static final String MAX_RUNNING_TIME_MS_PARAM = "maxTime";
     private static final String LOG_LOCATION_PARAM = "log";
 
-    private static final Integer MAX_RUNNING_TIME_MS = 1800000;
+    // 45 minutes in milliseconds.
+    private static final Integer MAX_RUNNING_TIME_MS = 2700000;
     private static final String LOG_LOCATION = "/tmp/long_running_oozie_jobs.log";
 
     private static OozieClient oozieClient;
@@ -97,7 +98,11 @@ public class CheckLongRunningJobs
 
     private static void checkRunningJobsIfExceededMaxTime(OozieClient oozieClient, WorkflowJob workflowJob, Long maxRunningTimeMs, Logger logger) throws OozieClientException
     {
-        Long runningTime = ((new Date()).getTime() - workflowJob.getLastModifiedTime().getTime());
+        Long runningTime = ((new Date()).getTime() - workflowJob.getStartTime().getTime());
+
+        logger.log(Level.INFO, "Job id " + workflowJob.getId() + " started " + workflowJob.getStartTime()
+                + " was modified " + workflowJob.getLastModifiedTime() + " and has been running for "
+                + runningTime + "ms ");
 
         if (runningTime > maxRunningTimeMs) {
             oozieClient.kill(workflowJob.getId());
