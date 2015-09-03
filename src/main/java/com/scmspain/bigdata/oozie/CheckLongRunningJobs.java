@@ -10,10 +10,7 @@ import org.apache.oozie.client.WorkflowJob;
 
 import java.util.Date;
 import java.util.List;
-import java.util.logging.FileHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 public class CheckLongRunningJobs
 {
@@ -41,6 +38,7 @@ public class CheckLongRunningJobs
 
             logger = Logger.getLogger(CheckLongRunningJobs.class.getName());
             Handler handler = new FileHandler(getLogLocation(args, options), true);
+            handler.setFormatter(new SimpleFormatter());
             logger.addHandler(handler);
 
             List<WorkflowJob> runningJobs = oozieClient.getJobsInfo("status=RUNNING");
