@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Check long running Oozie jobs
 
 ## Description
@@ -40,6 +39,3 @@ directory.
 
 The *fatJar* task generates a jar with all the dependencies inside, and you should execute the script using
 the java command.
-=======
-# data-bi-oozie-check-long-running-jobs
->>>>>>> a681e2b5607e23811e2f575c71146c3e1638743d
