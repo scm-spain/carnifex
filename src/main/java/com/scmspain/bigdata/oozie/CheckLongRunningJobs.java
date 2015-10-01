@@ -22,7 +22,7 @@ public class CheckLongRunningJobs
     // 45 minutes in milliseconds.
     private static final Integer MAX_RUNNING_TIME_MS = 2700000;
     private static final String LOG_LOCATION = "/tmp/long_running_oozie_jobs.log";
-    private static final String NAME_FILTER = "";
+    private static final String NAME_FILTER = null;
 
     private static OozieClient oozieClient;
     private static Logger logger;
@@ -121,7 +121,7 @@ public class CheckLongRunningJobs
                 + " was modified " + workflowJob.getLastModifiedTime() + " and has been running for "
                 + runningTime + "ms ");
 
-        Boolean nameFilterMatches = (nameFilter == "") ? true : wfName.contains(nameFilter);
+        Boolean nameFilterMatches = (nameFilter == null) ? true : wfName.contains(nameFilter);
 
         if (runningTime > maxRunningTimeMs && nameFilterMatches) {
             oozieClient.kill(workflowJob.getId());
