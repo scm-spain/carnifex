@@ -17,11 +17,12 @@ public class CheckLongRunningJobs
     private static final String OOZIE_URL_PARAM = "oozieUrl";
     private static final String MAX_RUNNING_TIME_MS_PARAM = "maxTime";
     private static final String LOG_LOCATION_PARAM = "log";
-    private static final String NAME_FILTER_PARAM = "";
+    private static final String NAME_FILTER_PARAM = "name";
 
     // 45 minutes in milliseconds.
     private static final Integer MAX_RUNNING_TIME_MS = 2700000;
     private static final String LOG_LOCATION = "/tmp/long_running_oozie_jobs.log";
+    private static final String NAME_FILTER = "";
 
     private static OozieClient oozieClient;
     private static Logger logger;
@@ -45,14 +46,12 @@ public class CheckLongRunningJobs
 
             String nameFilter = getNameFilterParam(args, options);
 
-            if (nameFilter != "") nameFilter = ";name=" + nameFilter;
-
-            List<WorkflowJob> runningJobs = oozieClient.getJobsInfo("status=RUNNING" + nameFilter);
+            List<WorkflowJob> runningJobs = oozieClient.getJobsInfo("status=RUNNING");
 
             logger.log(Level.INFO, "Found " + runningJobs.size() + " jobs currently running");
 
             for (WorkflowJob workflowJob : runningJobs) {
-                checkRunningJobsIfExceededMaxTime(oozieClient, workflowJob, maxRunningTimeMs, logger);
+                checkRunningJobsIfExceededMaxTime(oozieClient, workflowJob, maxRunningTimeMs, logger, nameFilter);
             }
 
         } catch (Exception e) {
@@ -106,21 +105,25 @@ public class CheckLongRunningJobs
             CommandLine line = new DefaultParser().parse(options, args);
 
             return (!line.hasOption(NAME_FILTER_PARAM)) ?
-                    NAME_FILTER_PARAM : line.getOptionValue(NAME_FILTER_PARAM);
+                    NAME_FILTER : line.getOptionValue(NAME_FILTER_PARAM);
         } catch (ParseException exp) {
             throw new RuntimeException("Error parsing " + NAME_FILTER_PARAM + " param " + exp.getMessage());
         }
     }
 
-    private static void checkRunningJobsIfExceededMaxTime(OozieClient oozieClient, WorkflowJob workflowJob, Long maxRunningTimeMs, Logger logger) throws OozieClientException
+    private static void checkRunningJobsIfExceededMaxTime(OozieClient oozieClient, WorkflowJob workflowJob, Long maxRunningTimeMs, Logger logger, String nameFilter) throws OozieClientException
     {
         Long runningTime = ((new Date()).getTime() - workflowJob.getStartTime().getTime());
 
-        logger.log(Level.INFO, "Job id " + workflowJob.getId() + " started " + workflowJob.getStartTime()
+        String wfName = workflowJob.getAppName();
+
+        logger.log(Level.INFO, "Job id " + workflowJob.getId() + " named " + wfName + " started " + workflowJob.getStartTime()
                 + " was modified " + workflowJob.getLastModifiedTime() + " and has been running for "
                 + runningTime + "ms ");
 
-        if (runningTime > maxRunningTimeMs) {
+        Boolean nameFilterMatches = (nameFilter == "") ? true : wfName.contains(nameFilter);
+
+        if (runningTime > maxRunningTimeMs && nameFilterMatches) {
             oozieClient.kill(workflowJob.getId());
             logger.log(Level.SEVERE, "Killed job " + workflowJob.getId() + " running for " + runningTime + " ms");
         }

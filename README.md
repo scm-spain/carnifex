@@ -21,7 +21,10 @@ and send the kill command
 * maxTime: Optional, you can set the maximum time a job can be running, it should be defined on milliseconds.
 The default value is *2700000* (45 minutes)
 * log: Optional, the location of the log file where all the output will be send, the user running the script
-should have permissions over that file. The default value is */tmp/long_running_oozie_jobs.log* 
+should have permissions over that file. The default value is */tmp/long_running_oozie_jobs.log*
+* name: Optional, you can filter which workflows to kill by a name filter, should be a substring of the workflow name
+(for example, to kill sqoop actions that exceeed maximum time, you can use name="sqoop"). The default values is empty
+string ("").
 
 ## Building it
 You can build a jar file using two different gradle tasks:
