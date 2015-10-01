@@ -17,6 +17,7 @@ public class CheckLongRunningJobs
     private static final String OOZIE_URL_PARAM = "oozieUrl";
     private static final String MAX_RUNNING_TIME_MS_PARAM = "maxTime";
     private static final String LOG_LOCATION_PARAM = "log";
+    private static final String NAME_FILTER_PARAM = "";
 
     // 45 minutes in milliseconds.
     private static final Integer MAX_RUNNING_TIME_MS = 2700000;
@@ -31,6 +32,7 @@ public class CheckLongRunningJobs
         options.addOption("u", OOZIE_URL_PARAM, true, "URL to connect to Oozie server");
         options.addOption("t", MAX_RUNNING_TIME_MS_PARAM, true, "Maximum time in milliseconds a job can be in execution");
         options.addOption("l", LOG_LOCATION_PARAM, true, "The log will be saved here");
+        options.addOption("f", NAME_FILTER_PARAM, true, "Name filter to kill only the workflows that match with it");
 
         try {
             oozieClient = new OozieClient(getOozieUrl(args, options));
@@ -41,7 +43,11 @@ public class CheckLongRunningJobs
             handler.setFormatter(new SimpleFormatter());
             logger.addHandler(handler);
 
-            List<WorkflowJob> runningJobs = oozieClient.getJobsInfo("status=RUNNING");
+            String nameFilter = getNameFilterParam(args, options);
+
+            if (nameFilter != "") nameFilter = ";name=" + nameFilter;
+
+            List<WorkflowJob> runningJobs = oozieClient.getJobsInfo("status=RUNNING" + nameFilter);
 
             logger.log(Level.INFO, "Found " + runningJobs.size() + " jobs currently running");
 
@@ -91,6 +97,18 @@ public class CheckLongRunningJobs
                     LOG_LOCATION : line.getOptionValue(LOG_LOCATION_PARAM);
         } catch (ParseException exp) {
             throw new RuntimeException("Error parsing " + LOG_LOCATION_PARAM + " param " + exp.getMessage());
+        }
+    }
+
+    private static String getNameFilterParam(String[] args, Options options)
+    {
+        try {
+            CommandLine line = new DefaultParser().parse(options, args);
+
+            return (!line.hasOption(NAME_FILTER_PARAM)) ?
+                    NAME_FILTER_PARAM : line.getOptionValue(NAME_FILTER_PARAM);
+        } catch (ParseException exp) {
+            throw new RuntimeException("Error parsing " + NAME_FILTER_PARAM + " param " + exp.getMessage());
         }
     }
 
