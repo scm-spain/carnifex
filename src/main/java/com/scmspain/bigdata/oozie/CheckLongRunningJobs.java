@@ -1,9 +1,5 @@
 package com.scmspain.bigdata.oozie;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.OozieClientException;
 import org.apache.oozie.client.WorkflowJob;
@@ -14,44 +10,31 @@ import java.util.logging.*;
 
 public class CheckLongRunningJobs
 {
-    private static final String OOZIE_URL_PARAM = "oozieUrl";
-    private static final String MAX_RUNNING_TIME_MS_PARAM = "maxTime";
-    private static final String LOG_LOCATION_PARAM = "log";
-    private static final String NAME_FILTER_PARAM = "name";
-
-    // 45 minutes in milliseconds.
-    private static final Integer MAX_RUNNING_TIME_MS = 2700000;
-    private static final String LOG_LOCATION = "/tmp/long_running_oozie_jobs.log";
-    private static final String NAME_FILTER = null;
 
     private static OozieClient oozieClient;
     private static Logger logger;
 
-    public static void main(String[] args)
+    public static void main(String[] args) throws Exception
     {
-        Options options = new Options();
-        options.addOption("u", OOZIE_URL_PARAM, true, "URL to connect to Oozie server");
-        options.addOption("t", MAX_RUNNING_TIME_MS_PARAM, true, "Maximum time in milliseconds a job can be in execution");
-        options.addOption("l", LOG_LOCATION_PARAM, true, "The log will be saved here");
-        options.addOption("f", NAME_FILTER_PARAM, true, "Name filter to kill only the workflows that match with it");
+        Arguments arguments = new Arguments(args);
 
         try {
-            oozieClient = new OozieClient(getOozieUrl(args, options));
-            Long maxRunningTimeMs = getMaxRunningTimeMs(args, options);
+            oozieClient = new OozieClient(arguments.getArgOozieUrl());
+            Long maxRunningTimeMs = arguments.getArgMaxRunningTime();
 
             logger = Logger.getLogger(CheckLongRunningJobs.class.getName());
-            Handler handler = new FileHandler(getLogLocation(args, options), true);
+            Handler handler = new FileHandler(arguments.getArgLogLocation(), true);
             handler.setFormatter(new SimpleFormatter());
             logger.addHandler(handler);
 
-            String nameFilter = getNameFilterParam(args, options);
+            String nameRegex = arguments.getArgNameRegex();
 
             List<WorkflowJob> runningJobs = oozieClient.getJobsInfo("status=RUNNING");
 
             logger.log(Level.INFO, "Found " + runningJobs.size() + " jobs currently running");
 
             for (WorkflowJob workflowJob : runningJobs) {
-                checkRunningJobsIfExceededMaxTime(oozieClient, workflowJob, maxRunningTimeMs, logger, nameFilter);
+                checkRunningJobsIfExceededMaxTime(oozieClient, workflowJob, maxRunningTimeMs, logger, nameRegex);
             }
 
         } catch (Exception e) {
@@ -60,58 +43,7 @@ public class CheckLongRunningJobs
 
     }
 
-    private static String getOozieUrl(String[] args, Options options)
-    {
-        try {
-            CommandLine line = new DefaultParser().parse(options, args);
-
-            if (!line.hasOption(OOZIE_URL_PARAM)) {
-                throw new RuntimeException(OOZIE_URL_PARAM + " param is required!");
-            }
-
-            return line.getOptionValue(OOZIE_URL_PARAM);
-        } catch (ParseException exp) {
-            throw new RuntimeException("Error parsing " + OOZIE_URL_PARAM + " param " + exp.getMessage());
-        }
-    }
-
-    private static Long getMaxRunningTimeMs(String[] args, Options options)
-    {
-        try {
-            CommandLine line = new DefaultParser().parse(options, args);
-
-            return (!line.hasOption(MAX_RUNNING_TIME_MS_PARAM)) ?
-                    MAX_RUNNING_TIME_MS : Long.parseLong(line.getOptionValue(MAX_RUNNING_TIME_MS_PARAM));
-        } catch (ParseException exp) {
-            throw new RuntimeException("Error parsing " + MAX_RUNNING_TIME_MS_PARAM + " param " + exp.getMessage());
-        }
-    }
-
-    private static String getLogLocation(String[] args, Options options)
-    {
-        try {
-            CommandLine line = new DefaultParser().parse(options, args);
-
-            return (!line.hasOption(LOG_LOCATION_PARAM)) ?
-                    LOG_LOCATION : line.getOptionValue(LOG_LOCATION_PARAM);
-        } catch (ParseException exp) {
-            throw new RuntimeException("Error parsing " + LOG_LOCATION_PARAM + " param " + exp.getMessage());
-        }
-    }
-
-    private static String getNameFilterParam(String[] args, Options options)
-    {
-        try {
-            CommandLine line = new DefaultParser().parse(options, args);
-
-            return (!line.hasOption(NAME_FILTER_PARAM)) ?
-                    NAME_FILTER : line.getOptionValue(NAME_FILTER_PARAM);
-        } catch (ParseException exp) {
-            throw new RuntimeException("Error parsing " + NAME_FILTER_PARAM + " param " + exp.getMessage());
-        }
-    }
-
-    private static void checkRunningJobsIfExceededMaxTime(OozieClient oozieClient, WorkflowJob workflowJob, Long maxRunningTimeMs, Logger logger, String nameFilter) throws OozieClientException
+    private static void checkRunningJobsIfExceededMaxTime(OozieClient oozieClient, WorkflowJob workflowJob, Long maxRunningTimeMs, Logger logger, String nameRegex) throws OozieClientException
     {
         Long runningTime = ((new Date()).getTime() - workflowJob.getStartTime().getTime());
 
@@ -119,9 +51,9 @@ public class CheckLongRunningJobs
 
         logger.log(Level.INFO, "Job id " + workflowJob.getId() + " named " + wfName + " started " + workflowJob.getStartTime()
                 + " was modified " + workflowJob.getLastModifiedTime() + " and has been running for "
-                + runningTime + "ms ");
+                + runningTime + "ms");
 
-        Boolean nameFilterMatches = (nameFilter == null) ? true : wfName.contains(nameFilter);
+        Boolean nameFilterMatches = (nameRegex == null) ? true : wfName.matches(nameRegex);
 
         if (runningTime > maxRunningTimeMs && nameFilterMatches) {
             oozieClient.kill(workflowJob.getId());
